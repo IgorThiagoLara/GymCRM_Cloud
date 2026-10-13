@@ -1,0 +1,27 @@
+:root {
+  --bg: #f4f5f7; --surface: #fff; --ink: #1b1f27; --muted: #6b7280; --line: #e3e6eb;
+  --brand: #0f766e; --brand-ink: #fff; --side: #111827; --danger: #b42318; --warn: #b54708; --ok: #067647;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); }
+button { cursor: pointer; border: 0; border-radius: 8px; padding: 9px 14px; background: var(--brand); color: var(--brand-ink); font-weight: 600; }
+button:disabled { opacity: .6; cursor: default; }
+button.link { background: none; color: #9ca3af; padding: 0; margin-top: 8px; font-weight: 500; }
+input, select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+label input, label select { margin-top: 4px; color: var(--ink); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.card.erro { border-color: #fda29b; background: #fef3f2; }
+.muted { color: var(--muted); } .small { font-size: 12px; } .erro-texto { color: var(--danger); font-size: 14px; }
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { width: 100%; max-width: 380px; } .login-card h1 { margin: 0; }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.sidebar { background: var(--side); color: #fff; padding: 20px 16px; display: flex; flex-direction: column; gap: 24px; }
+.brand { font-weight: 800; font-size: 20px; letter-spacing: .3px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sidebar nav a { color: #cbd5e1; text-decoration: none; padding: 9px 12px; border-radius: 8px; }
+.sidebar nav a.active { background: #1f2937; color: #fff; }
+.user { font-size: 14px; }
+.content { padding: 28px; max-width: 1100px; width: 100%; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } .sidebar { flex-direction: row; align-items: center; flex-wrap: wrap; } .sidebar nav { flex-direction: row; } }

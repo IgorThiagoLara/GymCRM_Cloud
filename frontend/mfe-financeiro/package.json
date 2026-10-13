@@ -1,0 +1,24 @@
+{
+  "name": "gymcrm-mfe-financeiro",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Microfrontend de Financeiro (remote)",
+  "scripts": {
+    "dev": "vite build && vite preview --port 5172 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5172 --strictPort"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@originjs/vite-plugin-federation": "^1.3.6",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

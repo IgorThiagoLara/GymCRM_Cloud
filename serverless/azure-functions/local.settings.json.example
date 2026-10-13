@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTION_AUTH_LEVEL": "anonymous",
+    "EMAIL_PROVIDER": "console",
+    "ACS_CONNECTION_STRING": "",
+    "ACS_SENDER_ADDRESS": "DoNotReply@<seu-dominio>.azurecomm.net"
+  },
+  "Host": { "CORS": "*" }
+}

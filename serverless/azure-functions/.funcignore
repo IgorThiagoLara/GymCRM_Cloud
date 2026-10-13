@@ -1,0 +1,7 @@
+*.md
+.git*
+local.settings.json
+tests
+tsconfig.json
+jest.config.js
+Dockerfile

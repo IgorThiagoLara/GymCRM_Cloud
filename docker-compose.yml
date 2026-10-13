@@ -1,0 +1,86 @@
+# GymCRM Cloud — ambiente completo: API Gateway + BFF + 4 microsserviços (1 Postgres cada) + RabbitMQ + 3 microfrontends (+ Azure Function local opcional).
+#   docker compose up --build        → http://localhost:8080   (RabbitMQ UI: http://localhost:15672, guest/guest)
+x-jwt: &jwt JWT_SECRET=${JWT_SECRET:-dev-secret-troque-em-producao}
+
+x-pg: &pg
+  image: postgres:16-alpine
+  environment: { POSTGRES_USER: gymcrm, POSTGRES_PASSWORD: gymcrm }
+  healthcheck: { test: ["CMD-SHELL", "pg_isready -U gymcrm -d $${POSTGRES_DB}"], interval: 3s, timeout: 3s, retries: 20 }
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  cadastros-db:    { <<: *pg, environment: { POSTGRES_USER: gymcrm, POSTGRES_PASSWORD: gymcrm, POSTGRES_DB: cadastros_db },    volumes: ["cadastros-data:/var/lib/postgresql/data"] }
+  matriculas-db:   { <<: *pg, environment: { POSTGRES_USER: gymcrm, POSTGRES_PASSWORD: gymcrm, POSTGRES_DB: matriculas_db },   volumes: ["matriculas-data:/var/lib/postgresql/data"] }
+  financeiro-db:   { <<: *pg, environment: { POSTGRES_USER: gymcrm, POSTGRES_PASSWORD: gymcrm, POSTGRES_DB: financeiro_db },   volumes: ["financeiro-data:/var/lib/postgresql/data"] }
+  notificacoes-db: { <<: *pg, environment: { POSTGRES_USER: gymcrm, POSTGRES_PASSWORD: gymcrm, POSTGRES_DB: notificacoes_db }, volumes: ["notificacoes-data:/var/lib/postgresql/data"] }
+
+  cadastros-service:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: services/cadastros-service } }
+    environment: [*jwt, "PORT=3001", "DATABASE_URL=postgres://gymcrm:gymcrm@cadastros-db:5432/cadastros_db"]
+    depends_on: { cadastros-db: { condition: service_healthy } }
+
+  matriculas-service:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: services/matriculas-service } }
+    environment: [*jwt, "PORT=3002", "DATABASE_URL=postgres://gymcrm:gymcrm@matriculas-db:5432/matriculas_db",
+                  "AMQP_URL=amqp://guest:guest@rabbitmq:5672", "CADASTROS_URL=http://cadastros-service:3001"]
+    depends_on:
+      matriculas-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      cadastros-service: { condition: service_started }
+
+  financeiro-service:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: services/financeiro-service } }
+    environment: [*jwt, "PORT=3003", "DATABASE_URL=postgres://gymcrm:gymcrm@financeiro-db:5432/financeiro_db", "AMQP_URL=amqp://guest:guest@rabbitmq:5672"]
+    depends_on:
+      financeiro-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  notificacoes-service:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: services/notificacoes-service } }
+    environment: [*jwt, "PORT=3004", "DATABASE_URL=postgres://gymcrm:gymcrm@notificacoes-db:5432/notificacoes_db", "AMQP_URL=amqp://guest:guest@rabbitmq:5672",
+                  "AZURE_FUNCTION_EMAIL_URL=${AZURE_FUNCTION_EMAIL_URL:-}", "AZURE_FUNCTION_KEY=${AZURE_FUNCTION_KEY:-}", "EMAIL_FALHAS_SIMULADAS=${EMAIL_FALHAS_SIMULADAS:-0}"]
+    depends_on:
+      notificacoes-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  bff-web:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: bff-web } }
+    environment: [*jwt, "PORT=4000", "CADASTROS_URL=http://cadastros-service:3001", "MATRICULAS_URL=http://matriculas-service:3002",
+                  "FINANCEIRO_URL=http://financeiro-service:3003", "NOTIFICACOES_URL=http://notificacoes-service:3004"]
+    depends_on: [cadastros-service, matriculas-service, financeiro-service, notificacoes-service]
+
+  mfe-matriculas:
+    build: { context: ., dockerfile: docker/frontend.Dockerfile, args: { WORKSPACE: frontend/mfe-matriculas } }
+  mfe-financeiro:
+    build: { context: ., dockerfile: docker/frontend.Dockerfile, args: { WORKSPACE: frontend/mfe-financeiro } }
+  mfe-eventos:
+    build: { context: ., dockerfile: docker/frontend.Dockerfile, args: { WORKSPACE: frontend/mfe-eventos } }
+  shell: 
+    build: { context: ., dockerfile: docker/frontend.Dockerfile, args: { WORKSPACE: frontend/shell } }
+
+  api-gateway:
+    build: { context: ., dockerfile: docker/service.Dockerfile, args: { WORKSPACE: api-gateway } }
+    environment: [*jwt, "PORT=8080", "BFF_URL=http://bff-web:4000", "SHELL_URL=http://shell:80",
+                  "MFE_MATRICULAS_URL=http://mfe-matriculas:80", "MFE_FINANCEIRO_URL=http://mfe-financeiro:80", "MFE_EVENTOS_URL=http://mfe-eventos:80"]
+    ports: ["8080:8080"]
+    depends_on: [bff-web, shell, mfe-matriculas, mfe-financeiro, mfe-eventos]
+
+  email-function:
+    profiles: ["azure-local"]
+    build: { context: ./serverless/azure-functions }
+    ports: ["7071:80"]
+
+volumes: { cadastros-data: {}, matriculas-data: {}, financeiro-data: {}, notificacoes-data: {} }

@@ -1,0 +1,12 @@
+{
+  "name": "gymcrm-cloud",
+  "version": "0.2.0",
+  "private": true,
+  "description": "GymCRM Cloud - API Gateway + BFF + Microsserviços (Database per Service) + EDA + Microfrontends + Azure Functions",
+  "workspaces": ["services/*", "bff-web", "api-gateway", "frontend/*"],
+  "scripts": {
+    "sync:shared": "bash scripts/sync-shared.sh",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}
